@@ -26,7 +26,16 @@ func DecodeJpeg(reader io.Reader) (Image, error) {
 
 // EncodeJpeg encodes the image onto the writer as a JPEG.
 func EncodeJpeg(w io.Writer, img Image) (int64, error) {
-	slice, err := img.image().gdImageJpeg()
+	slice, err := img.image().gdImageJpeg(92)
+	if err != nil {
+		return 0, err
+	}
+
+	return bytes.NewBuffer(slice).WriteTo(w)
+}
+
+func EncodeJpegWQ(w io.Writer, img Image, quality int) (int64, error) {
+	slice, err := img.image().gdImageJpeg(quality)
 	if err != nil {
 		return 0, err
 	}

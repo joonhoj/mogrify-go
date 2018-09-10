@@ -256,7 +256,7 @@ func (p *gdImage) gdImageGif() ([]byte, error) {
 	return C.GoBytes(data, size), nil
 }
 
-func (p *gdImage) gdImageJpeg() ([]byte, error) {
+func (p *gdImage) gdImageJpeg(quality int) ([]byte, error) {
 	if p == nil {
 		panic(imageError)
 	}
@@ -264,7 +264,7 @@ func (p *gdImage) gdImageJpeg() ([]byte, error) {
 	var size C.int
 
 	// use -1 as quality, this will mean to use standard Jpeg quality
-	data := C.gdImageJpegPtr(p.img, &size, 92)
+	data := C.gdImageJpegPtr(p.img, &size, C.int(quality))
 	if data == nil || int(size) == 0 {
 		return []byte{}, writeError
 	}
