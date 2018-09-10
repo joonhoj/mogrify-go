@@ -96,3 +96,11 @@ func calculateBounds(bounds Bounds, img *GdImage) (Bounds, error) {
 
 	return bounds, nil
 }
+
+func (img *GdImage) Pixels() ([]byte, error) {
+	return img.image().gdImagePixels()
+}
+
+func (img *GdImage) QuantizationPixels() ([]byte, error) {
+	return img.image().gdImageQuantizationPixels()
+}

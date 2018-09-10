@@ -2,6 +2,55 @@ package mogrify
 
 // #cgo LDFLAGS: -lgd
 // #include <gd.h>
+/*
+#include <stdlib.h>
+#include <string.h>
+unsigned char* get_pixels(gdImagePtr ptr, int* len) {
+	int pitch = ptr->trueColor ? sizeof(int) * ptr->sx : ptr->sx;
+	void* src = ptr->trueColor ? (void*) ptr->tpixels : (void*) ptr->pixels;
+	void* dest = NULL;
+	void* buf = NULL;
+
+	buf = malloc(pitch * ptr->sy);
+	if (buf == NULL) {
+		return NULL;
+	}
+
+	dest = buf;
+	for (int i = 0; i < ptr->sy; i++) {
+		memcpy(dest, src, pitch);
+		dest += pitch;
+	}
+
+	*len = pitch * ptr->sy;
+	return (unsigned char*) buf;
+}
+unsigned char* get_quantization_pixels(gdImagePtr ptr, int* len) {
+	int pitch = 3 * ptr->sx; // RGB
+	unsigned char* buf = NULL;
+	int i = 0;
+
+	buf = (unsigned char*) malloc(pitch * ptr->sy);
+	if (buf == NULL) {
+		return NULL;
+	}
+
+	for (int y = 0; y < ptr->sy; y++) {
+		for (int x = 0; x < ptr->sx; x++) {
+			int c = gdImageGetPixel(ptr, x, y);
+			buf[i++] = gdTrueColorGetRed(c) >> 2;
+			buf[i++] = gdTrueColorGetGreen(c) >> 2;
+			buf[i++] = gdTrueColorGetBlue(c) >> 2;
+		}
+	}
+
+	*len = pitch * ptr->sy;
+	return buf;
+}
+void free_pixels(unsigned char* pixels) {
+	if (pixels != NULL) free(pixels);
+}
+*/
 import "C"
 
 import (
@@ -223,4 +272,32 @@ func (p *gdImage) gdImageJpeg() ([]byte, error) {
 	defer C.gdFree(unsafe.Pointer(data))
 
 	return C.GoBytes(data, size), nil
+}
+
+func (p *gdImage) gdImagePixels() ([]byte, error) {
+	var len C.int
+
+	pixels := C.get_pixels(p.img, &len)
+	if pixels == nil {
+		return nil, errors.New("failed to get pixels")
+	}
+	defer C.free_pixels(pixels)
+
+	bytes := C.GoBytes(unsafe.Pointer(pixels), len)
+
+	return bytes, nil
+}
+
+func (p *gdImage) gdImageQuantizationPixels() ([]byte, error) {
+	var len C.int
+
+	pixels := C.get_quantization_pixels(p.img, &len)
+	if pixels == nil {
+		return nil, errors.New("failed to get pixels")
+	}
+	defer C.free_pixels(pixels)
+
+	bytes := C.GoBytes(unsafe.Pointer(pixels), len)
+
+	return bytes, nil
 }
