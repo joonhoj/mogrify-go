@@ -1,6 +1,6 @@
 package mogrify
 
-// #cgo LDFLAGS: -lgd
+// #cgo LDFLAGS: -lgd -lexif
 // #include <gd.h>
 /*
 #include <stdlib.h>
