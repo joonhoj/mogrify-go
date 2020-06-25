@@ -120,6 +120,10 @@ func gdCreateFromPng(buffer []byte) *gdImage {
 	return img(C.gdImageCreateFromPngPtr(C.int(len(buffer)), unsafe.Pointer(&buffer[0])))
 }
 
+func gdCreateFromWebp(buffer []byte) *gdImage {
+	return img(C.gdImageCreateFromWebpPtr(C.int(len(buffer)), unsafe.Pointer(&buffer[0])))
+}
+
 func (p *gdImage) gdDestroy() {
 	if p != nil && p.img != nil {
 		C.gdImageDestroy(p.img)
@@ -265,6 +269,23 @@ func (p *gdImage) gdImageJpeg(quality int) ([]byte, error) {
 
 	// use -1 as quality, this will mean to use standard Jpeg quality
 	data := C.gdImageJpegPtr(p.img, &size, C.int(quality))
+	if data == nil || int(size) == 0 {
+		return []byte{}, writeError
+	}
+
+	defer C.gdFree(unsafe.Pointer(data))
+
+	return C.GoBytes(data, size), nil
+}
+
+func (p *gdImage) gdImageWebp() ([]byte, error) {
+	if p == nil {
+		panic(imageError)
+	}
+
+	var size C.int
+
+	data := C.gdImageWebpPtr(p.img, &size)
 	if data == nil || int(size) == 0 {
 		return []byte{}, writeError
 	}

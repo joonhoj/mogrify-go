@@ -23,6 +23,7 @@ func init() {
 	registerFormat("image/jpeg", EncodeJpeg, DecodeJpeg)
 	registerFormat("image/jpg", EncodeJpeg, DecodeJpeg)
 	registerFormat("image/gif", EncodeGif, DecodeGif)
+	registerFormat("image/webp", EncodeWebp, DecodeWebp)
 }
 
 // Encode an image onto a writer using an encoder appropriate for the
