@@ -5,6 +5,69 @@ package mogrify
 /*
 #include <stdlib.h>
 #include <string.h>
+
+typedef struct _YCbCr {
+  unsigned char* ch[3];
+} YCbCr;
+
+void free_ycbcr(YCbCr* ycbcr);
+
+int RGBToYCbCr(unsigned char r, unsigned char g, unsigned char b) {
+	int r1 = (int)r;
+	int g1 = (int)g;
+	int b1 = (int)b;
+
+	int yy = (19595*r1 + 38470*g1 + 7471*b1 + (1<<15)) >> 16;
+
+	int cb = -11056*r1 - 21712*g1 + 32768*b1 + (257<<15);
+	if ((cb & 0xff000000) == 0) {
+		cb >>= 16;
+	} else {
+		cb = ~(cb >> 31);
+	}
+
+	int cr = 32768*r1 - 27440*g1 - 5328*b1 + (257<<15);
+	if ((cr & 0xff000000) == 0) {
+		cr >>= 16;
+	} else {
+		cr = ~(cr >> 31);
+	}
+
+	return ((yy & 0xff) << 16) | ((cb & 0xff) << 8) | (cr & 0xff);
+}
+
+YCbCr* get_ycbcr(gdImagePtr ptr, int* len) {
+	YCbCr* ycbcr = NULL;
+	int i = 0;
+
+	ycbcr = (YCbCr*)calloc(1, sizeof(YCbCr*));
+	if (ycbcr == NULL) {
+		return NULL;
+	}
+
+	for (int i = 0; i < 3; i++) {
+		ycbcr->ch[i] = (unsigned char*)malloc(ptr->sx * ptr->sy);
+		if (ycbcr->ch[i] == NULL) {
+			free_ycbcr(ycbcr);
+			return NULL;
+		}
+	}
+
+	for (int y = 0; y < ptr->sy; y++) {
+		for (int x = 0; x < ptr->sx; x++) {
+			int c = gdImageGetTrueColorPixel(ptr, x, y);
+			int res = RGBToYCbCr(gdTrueColorGetRed(c), gdTrueColorGetGreen(c), gdTrueColorGetBlue(c));
+			ycbcr->ch[0][i] = (unsigned char)(res >> 16);
+			ycbcr->ch[1][i] = (unsigned char)(res >> 8);
+			ycbcr->ch[2][i] = (unsigned char)res;
+			i++;
+		}
+	}
+
+	*len = ptr->sx * ptr->sy;
+	return ycbcr;
+}
+
 unsigned char* get_pixels(gdImagePtr ptr, int* len) {
 	int pitch = ptr->trueColor ? sizeof(int) * ptr->sx : ptr->sx;
 	void* src = ptr->trueColor ? (void*) ptr->tpixels : (void*) ptr->pixels;
@@ -25,6 +88,30 @@ unsigned char* get_pixels(gdImagePtr ptr, int* len) {
 	*len = pitch * ptr->sy;
 	return (unsigned char*) buf;
 }
+
+unsigned char* get_rgb_pixels(gdImagePtr ptr, int* len) {
+	int pitch = 3 * ptr->sx; // RGB
+	unsigned char* buf = NULL;
+	int i = 0;
+
+	buf = (unsigned char*) malloc(pitch * ptr->sy);
+	if (buf == NULL) {
+		return NULL;
+	}
+
+	for (int y = 0; y < ptr->sy; y++) {
+		for (int x = 0; x < ptr->sx; x++) {
+			int c = gdImageGetTrueColorPixel(ptr, x, y);
+			buf[i++] = gdTrueColorGetRed(c);
+			buf[i++] = gdTrueColorGetGreen(c);
+			buf[i++] = gdTrueColorGetBlue(c);
+		}
+	}
+
+	*len = pitch * ptr->sy;
+	return buf;
+}
+
 unsigned char* get_quantization_pixels(gdImagePtr ptr, int* len) {
 	int pitch = 3 * ptr->sx; // RGB
 	unsigned char* buf = NULL;
@@ -47,8 +134,18 @@ unsigned char* get_quantization_pixels(gdImagePtr ptr, int* len) {
 	*len = pitch * ptr->sy;
 	return buf;
 }
+
 void free_pixels(unsigned char* pixels) {
 	if (pixels != NULL) free(pixels);
+}
+
+void free_ycbcr(YCbCr* ycbcr) {
+	if (ycbcr != NULL) {
+		for (int i = 0; i < 3; i++) {
+			if (ycbcr->ch[i] != NULL) free(ycbcr->ch[i]);
+		}
+		free(ycbcr);
+	}
 }
 */
 import "C"
@@ -309,6 +406,20 @@ func (p *gdImage) gdImagePixels() ([]byte, error) {
 	return bytes, nil
 }
 
+func (p *gdImage) gdImageRGBPixels() ([]byte, error) {
+	var len C.int
+
+	pixels := C.get_rgb_pixels(p.img, &len)
+	if pixels == nil {
+		return nil, errors.New("failed to get pixels")
+	}
+	defer C.free_pixels(pixels)
+
+	bytes := C.GoBytes(unsafe.Pointer(pixels), len)
+
+	return bytes, nil
+}
+
 func (p *gdImage) gdImageQuantizationPixels() ([]byte, error) {
 	var len C.int
 
@@ -321,4 +432,20 @@ func (p *gdImage) gdImageQuantizationPixels() ([]byte, error) {
 	bytes := C.GoBytes(unsafe.Pointer(pixels), len)
 
 	return bytes, nil
+}
+
+func (p *gdImage) gdImageYCbCr() ([]byte, []byte, []byte, error) {
+	var len C.int
+
+	ycbcr := C.get_ycbcr(p.img, &len)
+	if ycbcr == nil {
+		return nil, nil, nil, errors.New("failed to get ycbcr")
+	}
+	defer C.free_ycbcr(ycbcr)
+
+	y := C.GoBytes(unsafe.Pointer(ycbcr.ch[0]), len)
+	cb := C.GoBytes(unsafe.Pointer(ycbcr.ch[1]), len)
+	cr := C.GoBytes(unsafe.Pointer(ycbcr.ch[2]), len)
+
+	return y, cb, cr, nil
 }

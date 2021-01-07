@@ -101,6 +101,14 @@ func (img *GdImage) Pixels() ([]byte, error) {
 	return img.image().gdImagePixels()
 }
 
+func (img *GdImage) RGBPixels() ([]byte, error) {
+	return img.image().gdImageRGBPixels()
+}
+
 func (img *GdImage) QuantizationPixels() ([]byte, error) {
 	return img.image().gdImageQuantizationPixels()
+}
+
+func (img *GdImage) YCbCr() ([]byte, []byte, []byte, error) {
+	return img.image().gdImageYCbCr()
 }

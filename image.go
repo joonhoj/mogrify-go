@@ -18,7 +18,9 @@ type Image interface {
 	NewResized(bounds Bounds) (*GdImage, error)
 	NewCropped(x int, y int, bounds Bounds) (*GdImage, error)
 	Pixels() ([]byte, error)
+	RGBPixels() ([]byte, error)
 	QuantizationPixels() ([]byte, error)
+	YCbCr() ([]byte, []byte, []byte, error)
 
 	image() *gdImage
 }
