@@ -20,7 +20,7 @@ type Image interface {
 	Pixels() ([]byte, error)
 	RGBPixels() ([]byte, error)
 	QuantizationPixels() ([]byte, error)
-	YCbCr() ([]byte, []byte, []byte, error)
+	YCbCr() ([][]byte, error)
 
 	image() *gdImage
 }

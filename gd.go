@@ -434,18 +434,20 @@ func (p *gdImage) gdImageQuantizationPixels() ([]byte, error) {
 	return bytes, nil
 }
 
-func (p *gdImage) gdImageYCbCr() ([]byte, []byte, []byte, error) {
+func (p *gdImage) gdImageYCbCr() ([][]byte, error) {
 	var len C.int
 
 	ycbcr := C.get_ycbcr(p.img, &len)
 	if ycbcr == nil {
-		return nil, nil, nil, errors.New("failed to get ycbcr")
+		return nil, errors.New("failed to get ycbcr")
 	}
 	defer C.free_ycbcr(ycbcr)
 
-	y := C.GoBytes(unsafe.Pointer(ycbcr.ch[0]), len)
-	cb := C.GoBytes(unsafe.Pointer(ycbcr.ch[1]), len)
-	cr := C.GoBytes(unsafe.Pointer(ycbcr.ch[2]), len)
+	ch := [][]byte{
+		C.GoBytes(unsafe.Pointer(ycbcr.ch[0]), len),
+		C.GoBytes(unsafe.Pointer(ycbcr.ch[1]), len),
+		C.GoBytes(unsafe.Pointer(ycbcr.ch[2]), len),
+	}
 
-	return y, cb, cr, nil
+	return ch, nil
 }

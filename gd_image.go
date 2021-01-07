@@ -109,6 +109,6 @@ func (img *GdImage) QuantizationPixels() ([]byte, error) {
 	return img.image().gdImageQuantizationPixels()
 }
 
-func (img *GdImage) YCbCr() ([]byte, []byte, []byte, error) {
+func (img *GdImage) YCbCr() ([][]byte, error) {
 	return img.image().gdImageYCbCr()
 }
